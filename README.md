@@ -1,6 +1,8 @@
 Simple command-line todo list, saves todo list in a local file. 
 Written in Rust.
-Use as-is. Todo:
+Use as-is. 
+
+Todo:
 0. [ ] - change data file name for multiple lists
 1. [ ] - remove data file after deleting last item
 2. [ ] - implement date & time
