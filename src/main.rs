@@ -1,15 +1,21 @@
+extern crate app_dirs;
 extern crate serde_derive;
-extern crate serde_json;
-// extern crate serde_json;
 
-// use serde_json;
+use app_dirs::*;
 use serde_derive::{Deserialize, Serialize};
 use std::env;
 use std::fs;
+use std::path::PathBuf;
+
+const APP_INFO: AppInfo = AppInfo {
+    name: "todo",
+    author: "Tom Wawer",
+};
 
 fn main() {
     let arguments: Vec<String> = env::args().collect();
     let mut todo_list = TodoList::new();
+    println!("{:?}", todo_list.filename);
     todo_list.load();
     if arguments.len() == 1 {
         todo_list.print();
@@ -37,14 +43,18 @@ impl TodoItem {
 #[derive(Serialize, Deserialize)]
 struct TodoList {
     list: Vec<TodoItem>,
-    filename: String,
+    filedir: PathBuf,
+    filename: PathBuf,
 }
 
 impl TodoList {
     fn new() -> TodoList {
+        let dir = get_app_root(AppDataType::UserConfig, &APP_INFO).expect("App dir not found");
+        fs::create_dir_all(&dir).expect("Problem creating user data directory");
         TodoList {
             list: Vec::new(),
-            filename: ".todo".to_string(),
+            filedir: dir,
+            filename: PathBuf::from("todo.data"),
         }
     }
     fn add(&mut self, name: String) {
@@ -96,6 +106,7 @@ impl TodoList {
                 self.mark(arguments[2].parse().expect("task number expected"));
                 self.print();
             }
+
             _ => print_help(),
         }
     }
@@ -121,6 +132,7 @@ fn print_help() {
         todo list | l           # list all items
         todo mark | m   <num>   # toggle done
         todo del  | d   <num>   # remove todo
+        todo file | f   <name>  # specify file name to write list
         todo help               # print help
     "
     );
