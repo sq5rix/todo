@@ -112,7 +112,7 @@ impl TodoList {
         }
     }
     fn is_empty(&self) -> bool {
-        self.list.len() != 0
+        self.list.len() == 0
     }
     fn save(&self, conf: &TodoConfig) {
         // Convert the TodoList struct to a JSON string.
