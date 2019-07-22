@@ -8,7 +8,7 @@ fn main() {
     todo_list.add("one".to_string());
     todo_list.add("two".to_string());
 
-    parse_command(&arguments, &mut todo_list);
+    todo_list.parse_command(&arguments);
 }
 
 struct TodoItem {
@@ -27,11 +27,12 @@ impl TodoItem {
 
 struct TodoList {
     list: Vec<TodoItem>,
+    filename: String,
 }
 
 impl TodoList {
     fn new() -> TodoList {
-        TodoList { list: Vec::new() }
+        TodoList { list: Vec::new(), filename: ".todo".to_string() }
     }
     fn add(&mut self, name: String) {
         self.list.push(TodoItem::new(name));
@@ -52,37 +53,41 @@ impl TodoList {
             println!("{}. [{}] - {}", idx, item.completed, item.item);
         }
     }
-}
 
-fn parse_command(arguments: &Vec<String>, todo_list: &mut TodoList) {
-    let command = arguments[1].as_str();
+    fn parse_command(&mut self, arguments: &Vec<String>) {
+        let command = arguments[1].as_str();
 
-    match command {
-        "g" | "get" | "l" | "list" => {
-            todo_list.print();
-        }
-        "a" | "add" => {
-            if arguments.len() != 3 {
-                print_help();
+        match command {
+            "g" | "get" | "l" | "list" => {
+                self.print();
             }
-            todo_list.add(arguments[2].clone());
-            todo_list.print();
-        }
-        "d" | "del" => {
-            if arguments.len() != 3 {
-                print_help();
+            "a" | "add" => {
+                if arguments.len() != 3 {
+                    print_help();
+                }
+                self.add(arguments[2].clone());
+                self.print();
             }
-            todo_list.delete(arguments[2].parse().expect("task number expected"));
-            todo_list.print();
-        }
-        "m" | "mark" => {
-            if arguments.len() != 3 {
-                print_help();
+            "d" | "del" => {
+                if arguments.len() != 3 {
+                    print_help();
+                }
+                self.delete(arguments[2].parse().expect("task number expected"));
+                self.print();
             }
-            todo_list.mark(arguments[2].parse().expect("task number expected"));
-            todo_list.print();
+            "m" | "mark" => {
+                if arguments.len() != 3 {
+                    print_help();
+                }
+                self.mark(arguments[2].parse().expect("task number expected"));
+                self.print();
+            }
+            _ => print_help(),
         }
-        _ => print_help(),
+    }
+    fn save(&self) {
+    }
+    fn load(&mut self) {
     }
 }
 
