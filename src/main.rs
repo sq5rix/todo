@@ -1,3 +1,9 @@
+extern crate serde;
+extern crate serde_derive;
+// extern crate serde_json;
+
+// use serde_json;
+use serde_derive::{Deserialize, Serialize};
 use std::env;
 
 fn main() {
@@ -11,6 +17,7 @@ fn main() {
     todo_list.parse_command(&arguments);
 }
 
+#[derive(Serialize, Deserialize)]
 struct TodoItem {
     item: String,
     completed: char,
@@ -25,6 +32,7 @@ impl TodoItem {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 struct TodoList {
     list: Vec<TodoItem>,
     filename: String,
@@ -32,7 +40,10 @@ struct TodoList {
 
 impl TodoList {
     fn new() -> TodoList {
-        TodoList { list: Vec::new(), filename: ".todo".to_string() }
+        TodoList {
+            list: Vec::new(),
+            filename: ".todo".to_string(),
+        }
     }
     fn add(&mut self, name: String) {
         self.list.push(TodoItem::new(name));
@@ -63,45 +74,43 @@ impl TodoList {
             }
             "a" | "add" => {
                 if arguments.len() != 3 {
-                    print_help();
+                    self.print_help();
                 }
                 self.add(arguments[2].clone());
                 self.print();
             }
             "d" | "del" => {
                 if arguments.len() != 3 {
-                    print_help();
+                    self.print_help();
                 }
                 self.delete(arguments[2].parse().expect("task number expected"));
                 self.print();
             }
             "m" | "mark" => {
                 if arguments.len() != 3 {
-                    print_help();
+                    self.print_help();
                 }
                 self.mark(arguments[2].parse().expect("task number expected"));
                 self.print();
             }
-            _ => print_help(),
+            _ => self.print_help(),
         }
     }
-    fn save(&self) {
-    }
-    fn load(&mut self) {
-    }
-}
+    fn save(&self) {}
+    fn load(&mut self) {}
 
-fn print_help() {
-    println!(
+    fn print_help(&self) {
+        println!(
+            "
+        Usage:
+            todo add | a    <name>  # add a todo
+            todo get | g            # list all items  
+            todo list | l           # list all items
+            todo mark | m   <num>   # toggle done
+            todo del | d    <num>   # remove todo
+            todo help               # print help
         "
-    Usage:
-        todo add | a    <name>  # add a todo
-        todo get | g            # list all items  
-        todo list | l           # list all items
-        todo mark | m   <num>   # toggle done
-        todo del | d    <num>   # remove todo
-        todo help               # print help
-    "
-    );
-    ::std::process::exit(0);
+        );
+        ::std::process::exit(0);
+    }
 }
