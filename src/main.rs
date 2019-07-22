@@ -1,20 +1,22 @@
-extern crate serde;
 extern crate serde_derive;
+extern crate serde_json;
 // extern crate serde_json;
 
 // use serde_json;
 use serde_derive::{Deserialize, Serialize};
 use std::env;
+use std::fs;
 
 fn main() {
     let arguments: Vec<String> = env::args().collect();
-
     let mut todo_list = TodoList::new();
-
-    todo_list.add("one".to_string());
-    todo_list.add("two".to_string());
-
+    todo_list.load();
+    if arguments.len() == 1 {
+        todo_list.print();
+        print_help();
+    }
     todo_list.parse_command(&arguments);
+    todo_list.save();
 }
 
 #[derive(Serialize, Deserialize)]
@@ -60,6 +62,7 @@ impl TodoList {
         }
     }
     fn print(&self) {
+        println!("Todo:");
         for (idx, item) in self.list.iter().enumerate() {
             println!("{}. [{}] - {}", idx, item.completed, item.item);
         }
@@ -74,43 +77,52 @@ impl TodoList {
             }
             "a" | "add" => {
                 if arguments.len() != 3 {
-                    self.print_help();
+                    print_help();
                 }
                 self.add(arguments[2].clone());
                 self.print();
             }
             "d" | "del" => {
                 if arguments.len() != 3 {
-                    self.print_help();
+                    print_help();
                 }
                 self.delete(arguments[2].parse().expect("task number expected"));
                 self.print();
             }
             "m" | "mark" => {
                 if arguments.len() != 3 {
-                    self.print_help();
+                    print_help();
                 }
                 self.mark(arguments[2].parse().expect("task number expected"));
                 self.print();
             }
-            _ => self.print_help(),
+            _ => print_help(),
         }
     }
-    fn save(&self) {}
-    fn load(&mut self) {}
-
-    fn print_help(&self) {
-        println!(
-            "
-        Usage:
-            todo add | a    <name>  # add a todo
-            todo get | g            # list all items  
-            todo list | l           # list all items
-            todo mark | m   <num>   # toggle done
-            todo del | d    <num>   # remove todo
-            todo help               # print help
-        "
-        );
-        ::std::process::exit(0);
+    fn save(&self) {
+        // Convert the TodoList struct to a JSON string.
+        let serialized = serde_json::to_string(&self).unwrap();
+        fs::write(&self.filename, serialized).expect("Cannot write to file, permissions?");
     }
+    fn load(&mut self) {
+        // Convert the JSON string back to a TodoList.
+        if let Ok(contents) = fs::read_to_string(&self.filename) {
+            *self = serde_json::from_str(&contents).unwrap();
+        }
+    }
+}
+
+fn print_help() {
+    println!(
+        "
+    Usage:
+        todo add  | a   <name>  # add a todo, if spaces use \"todo today\"
+        todo get  | g           # list all items  
+        todo list | l           # list all items
+        todo mark | m   <num>   # toggle done
+        todo del  | d   <num>   # remove todo
+        todo help               # print help
+    "
+    );
+    ::std::process::exit(0);
 }
