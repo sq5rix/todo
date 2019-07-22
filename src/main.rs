@@ -96,9 +96,6 @@ impl TodoList {
                 self.mark(arguments[2].parse().expect("task number expected"));
                 self.print();
             }
-            "f" | "file" => {
-                self.filename = arguments[2].parse().expect("file name expected");
-            }
             _ => print_help(),
         }
     }
@@ -124,7 +121,6 @@ fn print_help() {
         todo list | l           # list all items
         todo mark | m   <num>   # toggle done
         todo del  | d   <num>   # remove todo
-        todo file | f   <name>  # specify file name to write list
         todo help               # print help
     "
     );
