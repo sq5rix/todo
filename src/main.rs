@@ -15,8 +15,9 @@ const APP_INFO: AppInfo = AppInfo {
 fn main() {
     let arguments: Vec<String> = env::args().collect();
     let mut todo_list = TodoList::new();
-    println!("{:?}", todo_list.filename);
+
     todo_list.load();
+
     if arguments.len() == 1 {
         todo_list.print();
         print_help();
@@ -44,7 +45,7 @@ impl TodoItem {
 struct TodoList {
     list: Vec<TodoItem>,
     filedir: PathBuf,
-    filename: PathBuf,
+    filename: String,
 }
 
 impl TodoList {
@@ -54,7 +55,7 @@ impl TodoList {
         TodoList {
             list: Vec::new(),
             filedir: dir,
-            filename: PathBuf::from("todo.data"),
+            filename: "todo.data".to_string(),
         }
     }
     fn add(&mut self, name: String) {
@@ -113,11 +114,13 @@ impl TodoList {
     fn save(&self) {
         // Convert the TodoList struct to a JSON string.
         let serialized = serde_json::to_string(&self).unwrap();
-        fs::write(&self.filename, serialized).expect("Cannot write to file, permissions?");
+        let file_name = self.filedir.join(&self.filename);
+        fs::write(file_name, serialized).expect("Cannot write to file, permissions?");
     }
     fn load(&mut self) {
         // Convert the JSON string back to a TodoList.
-        if let Ok(contents) = fs::read_to_string(&self.filename) {
+        let file_name = self.filedir.join(&self.filename);
+        if let Ok(contents) = fs::read_to_string(file_name) {
             *self = serde_json::from_str(&contents).unwrap();
         }
     }
