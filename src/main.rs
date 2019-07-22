@@ -109,15 +109,15 @@ impl TodoList {
     }
     fn save(&self, conf: &TodoConfig) {
         // Convert the TodoList struct to a JSON string.
-        let serialized = serde_json::to_string(&self).unwrap();
+        let todo_data = serde_json::to_string(&self).unwrap();
         let file_name = conf.data_dir_name.join(&conf.data_file_name);
-        fs::write(file_name, serialized).expect("Cannot write to file, permissions?");
+        fs::write(file_name, todo_data).expect("Cannot write to file, permissions?");
     }
     fn load(&mut self, conf: &TodoConfig) {
         // Convert the JSON string back to a TodoList.
         let file_name = conf.data_dir_name.join(&conf.data_file_name);
-        if let Ok(contents) = fs::read_to_string(file_name) {
-            *self = serde_json::from_str(&contents).unwrap();
+        if let Ok(todo_data) = fs::read_to_string(file_name) {
+            *self = serde_json::from_str(&todo_data).unwrap();
         }
     }
 }
