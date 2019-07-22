@@ -11,11 +11,14 @@ const APP_INFO: AppInfo = AppInfo {
     name: "todo",
     author: "Tom Wawer",
 };
+const CONFIG_FILE: &'static str = "todo.config";
 
 fn main() {
     let arguments: Vec<String> = env::args().collect();
+    let mut config_data = TodoConfig::new();
     let mut todo_list = TodoList::new();
 
+    config_data.load_config();
     todo_list.load();
 
     if arguments.len() == 1 {
@@ -123,6 +126,34 @@ impl TodoList {
         if let Ok(contents) = fs::read_to_string(file_name) {
             *self = serde_json::from_str(&contents).unwrap();
         }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct TodoConfig {
+    data_dir_name: PathBuf,
+    data_file_name: String,
+}
+
+impl TodoConfig {
+    fn new() -> TodoConfig {
+        TodoConfig {
+            data_dir_name: get_app_root(AppDataType::UserConfig, &APP_INFO)
+                .expect("App dir not found"),
+            data_file_name: CONFIG_FILE.to_string(),
+        }
+    }
+    // config file in the user app directory
+    fn load_config(&mut self) {
+        fs::create_dir_all(&self.data_dir_name).expect("Problem creating user data directory");
+        let config_file_name = self.data_dir_name.join(CONFIG_FILE);
+        if let Ok(contents) = fs::read_to_string(config_file_name) {
+            *self = serde_json::from_str(&contents).unwrap();
+        } else {
+            let serialized = serde_json::to_string(&self).unwrap();
+            let file_name = self.data_dir_name.join(&self.data_file_name);
+            fs::write(file_name, serialized).expect("Cannot write to config file, permissions?");
+        };
     }
 }
 
