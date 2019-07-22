@@ -27,7 +27,11 @@ fn main() {
         print_help();
     }
     todo_list.parse_command(&arguments);
-    todo_list.save(&config_data);
+    if !todo_list.is_empty() {
+        todo_list.save(&config_data);
+    } else {
+        config_data.remove_data_file();
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -107,6 +111,9 @@ impl TodoList {
             _ => print_help(),
         }
     }
+    fn is_empty(&self) -> bool {
+        self.list.len() != 0
+    }
     fn save(&self, conf: &TodoConfig) {
         // Convert the TodoList struct to a JSON string.
         let todo_data = serde_json::to_string(&self).unwrap();
@@ -147,6 +154,10 @@ impl TodoConfig {
             let file_name = self.data_dir_name.join(CONFIG_FILE);
             fs::write(file_name, serialized).expect("Cannot write to config file, permissions?");
         };
+    }
+    fn remove_data_file(&self) {
+        fs::remove_file(&self.data_dir_name.join(&self.data_file_name))
+            .expect("can't remove empty file");
     }
 }
 
