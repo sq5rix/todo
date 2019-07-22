@@ -12,6 +12,7 @@ const APP_INFO: AppInfo = AppInfo {
     author: "Tom Wawer",
 };
 const CONFIG_FILE: &'static str = "todo.config";
+const DATA_FILE: &'static str = "todo.data";
 
 fn main() {
     let arguments: Vec<String> = env::args().collect();
@@ -19,14 +20,14 @@ fn main() {
     let mut todo_list = TodoList::new();
 
     config_data.load_config();
-    todo_list.load();
+    todo_list.load(&config_data);
 
     if arguments.len() == 1 {
         todo_list.print();
         print_help();
     }
     todo_list.parse_command(&arguments);
-    todo_list.save();
+    todo_list.save(&config_data);
 }
 
 #[derive(Serialize, Deserialize)]
@@ -47,19 +48,11 @@ impl TodoItem {
 #[derive(Serialize, Deserialize)]
 struct TodoList {
     list: Vec<TodoItem>,
-    filedir: PathBuf,
-    filename: String,
 }
 
 impl TodoList {
     fn new() -> TodoList {
-        let dir = get_app_root(AppDataType::UserConfig, &APP_INFO).expect("App dir not found");
-        fs::create_dir_all(&dir).expect("Problem creating user data directory");
-        TodoList {
-            list: Vec::new(),
-            filedir: dir,
-            filename: "todo.data".to_string(),
-        }
+        TodoList { list: Vec::new() }
     }
     fn add(&mut self, name: String) {
         self.list.push(TodoItem::new(name));
@@ -114,15 +107,15 @@ impl TodoList {
             _ => print_help(),
         }
     }
-    fn save(&self) {
+    fn save(&self, conf: &TodoConfig) {
         // Convert the TodoList struct to a JSON string.
         let serialized = serde_json::to_string(&self).unwrap();
-        let file_name = self.filedir.join(&self.filename);
+        let file_name = conf.data_dir_name.join(&conf.data_file_name);
         fs::write(file_name, serialized).expect("Cannot write to file, permissions?");
     }
-    fn load(&mut self) {
+    fn load(&mut self, conf: &TodoConfig) {
         // Convert the JSON string back to a TodoList.
-        let file_name = self.filedir.join(&self.filename);
+        let file_name = conf.data_dir_name.join(&conf.data_file_name);
         if let Ok(contents) = fs::read_to_string(file_name) {
             *self = serde_json::from_str(&contents).unwrap();
         }
@@ -140,7 +133,7 @@ impl TodoConfig {
         TodoConfig {
             data_dir_name: get_app_root(AppDataType::UserConfig, &APP_INFO)
                 .expect("App dir not found"),
-            data_file_name: CONFIG_FILE.to_string(),
+            data_file_name: DATA_FILE.to_string(),
         }
     }
     // config file in the user app directory
@@ -151,7 +144,7 @@ impl TodoConfig {
             *self = serde_json::from_str(&contents).unwrap();
         } else {
             let serialized = serde_json::to_string(&self).unwrap();
-            let file_name = self.data_dir_name.join(&self.data_file_name);
+            let file_name = self.data_dir_name.join(CONFIG_FILE);
             fs::write(file_name, serialized).expect("Cannot write to config file, permissions?");
         };
     }
