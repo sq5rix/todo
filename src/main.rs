@@ -36,6 +36,9 @@ impl TodoList {
     fn add(&mut self, name: String) {
         self.list.push(TodoItem::new(name));
     }
+    fn delete(&mut self, pos: usize) {
+        self.list.remove(pos);
+    }
     fn mark(&mut self, pos: usize) {
         let mark = self.list[pos].completed;
         if mark == 'x' {
@@ -69,7 +72,7 @@ fn parse_command(arguments: &Vec<String>, todo_list: &mut TodoList) {
             if arguments.len() != 3 {
                 print_help();
             }
-            todo_list.add(arguments[2].clone());
+            todo_list.delete(arguments[2].parse().expect("task number expected"));
             todo_list.print();
         }
         "m" | "mark" => {
