@@ -27,6 +27,8 @@ fn main() {
         todo_list.print();
         print_help();
     }
+
+    // main parsing command takes config struct and todo list struct
     parse_command(&mut config_data, &mut todo_list, &arguments);
 
     if !todo_list.is_empty() {
@@ -174,6 +176,16 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
             conf.print();
             data.print();
         }
+        "s" | "swap" => {
+            if arguments.len() != 4 {
+                print_help();
+            }
+            let ind1: usize = arguments[2].parse().expect("task 1 number expected");
+            let ind2: usize = arguments[3].parse().expect("task 2 number expected");
+            data.list.swap(ind1, ind2);
+            conf.print();
+            data.print();
+        }
         "f" | "file" => {
             if arguments.len() != 3 {
                 print_help();
@@ -204,6 +216,7 @@ fn print_help() {
         todo list | l           # list all items
         todo mark | m   <num>   # toggle done
         todo del  | d   <num>   # remove todo
+        todo swap | s   <num> <num> # swap two item
         todo help               # print help
     "
     );
