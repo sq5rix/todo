@@ -144,10 +144,17 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
             data.print();
         }
         "a" | "add" => {
-            if arguments.len() != 3 {
+            if arguments.len() < 3 {
                 print_help();
             }
-            data.add(arguments[2].clone());
+            let mut todo_item = String::new();
+            let mut a = 2;
+            while a < arguments.len() {
+                todo_item.push_str(&arguments[a]);
+                todo_item.push(' ');
+                a += 1;
+            }
+            data.add(todo_item);
             conf.print();
             data.print();
         }
@@ -192,7 +199,7 @@ fn print_help() {
         "
     Usage:
         todo file | f   <name>  # specify todo list to use   
-        todo add  | a   <name>  # add a todo, if spaces use \"todo today\"
+        todo add  | a   <name>  # add a todo
         todo get  | g           # list all items  
         todo list | l           # list all items
         todo mark | m   <num>   # toggle done
