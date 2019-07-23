@@ -225,7 +225,7 @@ fn print_help() {
         todo list | l                 # list all items
         todo mark | m   <num> [num]*  # toggle done
         todo del  | d   <num>         # remove todo
-        todo swap | s   <num> <num>   # swap two item
+        todo swap | s   <num> <num>   # swap two items
         todo help                     # print help
     "
     );

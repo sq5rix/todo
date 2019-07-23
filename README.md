@@ -3,7 +3,7 @@ Written in Rust.
 Use as-is. 
 
 Todo:
-0. [x] - change data file name for multiple lists
+
 1. [x] - remove data file after deleting last item
 2. [ ] - implement date & time
 3. [x] - implement sorting/moving items
