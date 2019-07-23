@@ -23,10 +23,12 @@ fn main() {
     todo_list.load(&config_data);
 
     if arguments.len() == 1 {
+        config_data.print();
         todo_list.print();
         print_help();
     }
-    todo_list.parse_command(&arguments);
+    parse_command(&mut config_data, &mut todo_list, &arguments);
+
     if !todo_list.is_empty() {
         todo_list.save(&config_data);
     } else {
@@ -73,46 +75,13 @@ impl TodoList {
         }
     }
     fn print(&self) {
-        println!("Todo:");
         for (idx, item) in self.list.iter().enumerate() {
             println!("{}. [{}] - {}", idx, item.completed, item.item);
         }
     }
 
-    fn parse_command(&mut self, arguments: &Vec<String>) {
-        let command = arguments[1].as_str();
-
-        match command {
-            "g" | "get" | "l" | "list" => {
-                self.print();
-            }
-            "a" | "add" => {
-                if arguments.len() != 3 {
-                    print_help();
-                }
-                self.add(arguments[2].clone());
-                self.print();
-            }
-            "d" | "del" => {
-                if arguments.len() != 3 {
-                    print_help();
-                }
-                self.delete(arguments[2].parse().expect("task number expected"));
-                self.print();
-            }
-            "m" | "mark" => {
-                if arguments.len() != 3 {
-                    print_help();
-                }
-                self.mark(arguments[2].parse().expect("task number expected"));
-                self.print();
-            }
-
-            _ => print_help(),
-        }
-    }
     fn is_empty(&self) -> bool {
-        self.list.len() == 0
+        self.list.is_empty()
     }
     fn save(&self, conf: &TodoConfig) {
         // Convert the TodoList struct to a JSON string.
@@ -150,14 +119,71 @@ impl TodoConfig {
         if let Ok(contents) = fs::read_to_string(config_file_name) {
             *self = serde_json::from_str(&contents).unwrap();
         } else {
-            let serialized = serde_json::to_string(&self).unwrap();
-            let file_name = self.data_dir_name.join(CONFIG_FILE);
-            fs::write(file_name, serialized).expect("Cannot write to config file, permissions?");
+            self.save_config();
         };
     }
+    fn save_config(&mut self) {
+        let serialized = serde_json::to_string(&self).unwrap();
+        let file_name = self.data_dir_name.join(CONFIG_FILE);
+        fs::write(file_name, serialized).expect("Cannot write to config file, permissions?");
+    }
     fn remove_data_file(&self) {
-        fs::remove_file(&self.data_dir_name.join(&self.data_file_name))
-            .expect("can't remove empty file");
+        let _ = fs::remove_file(&self.data_dir_name.join(&self.data_file_name));
+    }
+    fn print(&self) {
+        println!("{} Todo: ", self.data_file_name);
+    }
+}
+
+fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<String>) {
+    let command = arguments[1].as_str();
+
+    match command {
+        "g" | "get" | "l" | "list" => {
+            conf.print();
+            data.print();
+        }
+        "a" | "add" => {
+            if arguments.len() != 3 {
+                print_help();
+            }
+            data.add(arguments[2].clone());
+            conf.print();
+            data.print();
+        }
+        "d" | "del" => {
+            if arguments.len() != 3 {
+                print_help();
+            }
+            data.delete(arguments[2].parse().expect("task number expected"));
+            conf.print();
+            data.print();
+        }
+        "m" | "mark" => {
+            if arguments.len() != 3 {
+                print_help();
+            }
+            data.mark(arguments[2].parse().expect("task number expected"));
+            conf.print();
+            data.print();
+        }
+        "f" | "file" => {
+            if arguments.len() != 3 {
+                print_help();
+            }
+            data.save(conf);
+            conf.data_file_name = arguments[2].clone();
+            conf.save_config();
+            data.list = Vec::new();
+            data.load(conf);
+            conf.print();
+            data.print();
+        }
+        _ => {
+            conf.print();
+            data.print();
+            print_help();
+        }
     }
 }
 
@@ -165,12 +191,12 @@ fn print_help() {
     println!(
         "
     Usage:
+        todo file | f   <name>  # specify todo list to use   
         todo add  | a   <name>  # add a todo, if spaces use \"todo today\"
         todo get  | g           # list all items  
         todo list | l           # list all items
         todo mark | m   <num>   # toggle done
         todo del  | d   <num>   # remove todo
-        todo file | f   <name>  # specify file name to write list
         todo help               # print help
     "
     );
