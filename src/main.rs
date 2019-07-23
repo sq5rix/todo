@@ -169,10 +169,13 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
             data.print();
         }
         "m" | "mark" => {
-            if arguments.len() != 3 {
+            if arguments.len() < 3 {
                 print_help();
             }
-            data.mark(arguments[2].parse().expect("task number expected"));
+            let nums = &arguments[2..];
+            for idx in nums {
+                data.mark(idx.parse().expect("task number expected"));
+            }
             conf.print();
             data.print();
         }
@@ -210,14 +213,14 @@ fn print_help() {
     println!(
         "
     Usage:
-        todo file | f   <name>  # specify todo list to use   
-        todo add  | a   <name>  # add a todo
-        todo get  | g           # list all items  
-        todo list | l           # list all items
-        todo mark | m   <num>   # toggle done
-        todo del  | d   <num>   # remove todo
-        todo swap | s   <num> <num> # swap two item
-        todo help               # print help
+        todo file | f   <name>        # specify todo list to use   
+        todo add  | a   <name>        # add a todo
+        todo get  | g                 # list all items  
+        todo list | l                 # list all items
+        todo mark | m   <num> [num]*  # toggle done
+        todo del  | d   <num>         # remove todo
+        todo swap | s   <num> <num>   # swap two item
+        todo help                     # print help
     "
     );
     ::std::process::exit(0);
