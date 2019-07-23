@@ -1,3 +1,5 @@
+// CLI based todo app, for linux, windows and mac
+
 extern crate app_dirs;
 extern crate serde_derive;
 
@@ -38,6 +40,7 @@ fn main() {
     }
 }
 
+// main todoitem structure, keeps a single todo
 #[derive(Serialize, Deserialize)]
 struct TodoItem {
     item: String,
@@ -53,6 +56,7 @@ impl TodoItem {
     }
 }
 
+// Vec of TodoItems
 #[derive(Serialize, Deserialize)]
 struct TodoList {
     list: Vec<TodoItem>,
@@ -81,7 +85,6 @@ impl TodoList {
             println!("{}. [{}] - {}", idx, item.completed, item.item);
         }
     }
-
     fn is_empty(&self) -> bool {
         self.list.is_empty()
     }
@@ -100,6 +103,7 @@ impl TodoList {
     }
 }
 
+// config file struct
 #[derive(Serialize, Deserialize)]
 struct TodoConfig {
     data_dir_name: PathBuf,
@@ -137,6 +141,7 @@ impl TodoConfig {
     }
 }
 
+// main parsing command, takes arguments, skips 0 index
 fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<String>) {
     let command = arguments[1].as_str();
 
@@ -209,6 +214,7 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
     }
 }
 
+// prints help
 fn print_help() {
     println!(
         "

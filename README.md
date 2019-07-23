@@ -3,17 +3,27 @@ Written in Rust.
 Use as-is. 
 
 Todo:
-0. [ ] - change data file name for multiple lists
-1. [ ] - remove data file after deleting last item
+0. [x] - change data file name for multiple lists
+1. [x] - remove data file after deleting last item
 2. [ ] - implement date & time
-3. [ ] - implement sorting/moving items
+3. [x] - implement sorting/moving items
 
     Usage:
-        todo add  | a   <name>  # add a todo, if spaces use "todo today"
-        todo get  | g           # list all items  
-        todo list | l           # list all items
-        todo mark | m   <num>   # toggle done
-        todo del  | d   <num>   # remove todo
-        todo file | f   <name>  # specify file name to write list
-        todo help               # print help
+    
+        todo add  | a any string # add a todo
+
+        todo get  | g            # list all items  
+
+        todo list | l            # list all items
+
+        todo mark | m   <num>+   # toggle done
+
+        todo del  | d   <num>    # remove todo
+
+        todo swap | s <num> <num>#swap two items
+
+        todo file | f   <name>   # specify todo list name 
+
+        todo help                # print help
+
     
