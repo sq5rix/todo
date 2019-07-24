@@ -21,13 +21,19 @@ pub fn get_range(s: &str) -> Option<Range<usize>> {
         }
     }
     // println!("Got: r1: {} r2: {}", first, second);
-    let r1 = first.parse().expect("first number parsed bad");
-    let r2 = second.parse().expect("second number parsed bad");
-    if r1 < r2 {
-        return Some(r1..r2);
+    if let Ok(r1) = first.parse() {
+        if let Ok(r2) = second.parse() {
+            if r1 < r2 {
+                return Some(r1..r2);
+            } else {
+                return None;
+            }
+        } else {
+            return None;
+        };
     } else {
         return None;
-    }
+    };
 }
 
 #[cfg(test)]
@@ -46,11 +52,11 @@ mod tests {
             );
         }
     }
-    // #[test]
-    // fn invalid_tests() {
-    //     let invalid_data = vec!["61-6a", "51-10"];
-    //     for test in invalid_data {
-    //         assert_eq!(get_range(&test), None, "we are testing {} as None", test);
-    //     }
-    // }
+    #[test]
+    fn invalid_tests() {
+        let invalid_data = vec!["61-6a", "61-6", "61-6", "5"];
+        for test in invalid_data {
+            assert_eq!(get_range(&test), None, "we are testing {} as None", test);
+        }
+    }
 }
