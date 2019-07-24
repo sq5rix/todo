@@ -25,6 +25,7 @@ fn main() {
 
     config_data.load_config();
     todo_list.load(&config_data);
+    todo_list.make_backup(&config_data);
 
     if arguments.len() == 1 {
         config_data.print();
@@ -34,6 +35,8 @@ fn main() {
 
     // main parsing command takes config struct and todo list struct
     parse_command(&mut config_data, &mut todo_list, &arguments);
+    config_data.print();
+    todo_list.print();
 
     if !todo_list.is_empty() {
         todo_list.save(&config_data);
@@ -89,6 +92,21 @@ impl TodoList {
     }
     fn is_empty(&self) -> bool {
         self.list.is_empty()
+    }
+    fn make_backup(&self, conf: &TodoConfig) {
+        // Convert the TodoList struct to a JSON string.
+        let todo_data = serde_json::to_string(&self).unwrap();
+        let backup_file = conf.data_file_name.clone() + ".bk";
+        let file_name = conf.data_dir_name.join(backup_file);
+        println!("{:#?}", file_name);
+        fs::write(file_name, todo_data).expect("Cannot write to backup file, permissions?");
+    }
+    fn read_from_backup(&mut self, conf: &TodoConfig) {
+        let backup_file: String = conf.data_file_name.clone() + ".bk";
+        let file_name = conf.data_dir_name.join(backup_file);
+        if let Ok(todo_data) = fs::read_to_string(file_name) {
+            *self = serde_json::from_str(&todo_data).unwrap();
+        }
     }
     fn save(&self, conf: &TodoConfig) {
         // Convert the TodoList struct to a JSON string.
@@ -164,8 +182,6 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
                 a += 1;
             }
             data.add(todo_item);
-            conf.print();
-            data.print();
         }
         "d" | "del" => {
             if arguments.len() != 3 {
@@ -185,8 +201,6 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
                 }
                 ReturnItem::None => (),
             }
-            conf.print();
-            data.print();
         }
         "m" | "mark" => {
             if arguments.len() < 3 {
@@ -207,8 +221,6 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
                     ReturnItem::None => (),
                 }
             }
-            conf.print();
-            data.print();
         }
         "s" | "swap" => {
             if arguments.len() != 4 {
@@ -217,8 +229,12 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
             let ind1: usize = arguments[2].parse().expect("task 1 number expected");
             let ind2: usize = arguments[3].parse().expect("task 2 number expected");
             data.list.swap(ind1, ind2);
-            conf.print();
-            data.print();
+        }
+        "u" | "undo" => {
+            if arguments.len() != 3 {
+                print_help();
+            }
+            data.read_from_backup(conf);
         }
         "f" | "file" => {
             if arguments.len() != 3 {
@@ -233,8 +249,6 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
             data.print();
         }
         _ => {
-            conf.print();
-            data.print();
             print_help();
         }
     }
@@ -245,7 +259,8 @@ fn print_help() {
     println!(
         "
     Usage:
-        todo file | f   <name>        # specify todo list to use   
+        todo file | f   <name>        # specify todo list to use
+        todo undo | u                 # undo last operation
         todo add  | a   <name>        # add a todo
         todo get  | g                 # list all items  
         todo list | l                 # list all items
