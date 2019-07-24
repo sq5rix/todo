@@ -23,6 +23,8 @@ Todo:
 
         todo swap | s   <num> <num>   # swap two items
 
+        todo undo | u                 # undo last operation
+
         todo help                     # print help
 
     

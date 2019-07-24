@@ -25,7 +25,6 @@ fn main() {
 
     config_data.load_config();
     todo_list.load(&config_data);
-    todo_list.make_backup(&config_data);
 
     if arguments.len() == 1 {
         config_data.print();
@@ -85,11 +84,6 @@ impl TodoList {
             self.list[pos].completed = 'x';
         }
     }
-    fn print(&self) {
-        for (idx, item) in self.list.iter().enumerate() {
-            println!("{}. [{}] - {}", idx, item.completed, item.item);
-        }
-    }
     fn is_empty(&self) -> bool {
         self.list.is_empty()
     }
@@ -119,6 +113,21 @@ impl TodoList {
         let file_name = conf.data_dir_name.join(&conf.data_file_name);
         if let Ok(todo_data) = fs::read_to_string(file_name) {
             *self = serde_json::from_str(&todo_data).unwrap();
+        }
+    }
+    fn print(&self) {
+        let mut prefix = "";
+        for (idx, item) in self.list.iter().enumerate() {
+            if idx < 1000 {
+                prefix = ""
+            }
+            if idx < 100 {
+                prefix = " "
+            }
+            if idx < 10 {
+                prefix = "  "
+            }
+            println!("{}{}. [{}] - {}", prefix, idx, item.completed, item.item);
         }
     }
 }
@@ -188,6 +197,7 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
                 println!("Only one pos argument after del");
                 print_help();
             }
+            data.make_backup(&conf);
             let item = get_item_set(&arguments[2]);
             match item {
                 ReturnItem::IntNum(i) => {
@@ -196,7 +206,9 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
                 ReturnItem::IntRange(ir) => {
                     // must be reversed to remove last first
                     for i in ir.rev() {
-                        data.delete(i);
+                        if i < data.list.len() {
+                            data.delete(i);
+                        }
                     }
                 }
                 ReturnItem::None => (),
@@ -215,7 +227,9 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
                     }
                     ReturnItem::IntRange(ir) => {
                         for i in ir {
-                            data.mark(i);
+                            if i < data.list.len() {
+                                data.mark(i);
+                            }
                         }
                     }
                     ReturnItem::None => (),
@@ -231,7 +245,7 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
             data.list.swap(ind1, ind2);
         }
         "u" | "undo" => {
-            if arguments.len() != 3 {
+            if arguments.len() != 2 {
                 print_help();
             }
             data.read_from_backup(conf);
