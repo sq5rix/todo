@@ -191,6 +191,7 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
                 a += 1;
             }
             data.add(todo_item);
+            data.make_backup(&conf);
         }
         "d" | "del" => {
             if arguments.len() != 3 {
@@ -211,7 +212,9 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
                         }
                     }
                 }
-                ReturnItem::None => (),
+                ReturnItem::None => {
+                    println!("Nothing deleted check your range");
+                }
             }
         }
         "m" | "mark" => {
