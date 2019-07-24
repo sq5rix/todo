@@ -1,6 +1,5 @@
 Simple command-line todo list, saves todo list in a local file. 
 Written in Rust.
-Use as-is. 
 
 Todo:
 
@@ -9,21 +8,21 @@ Todo:
 3. [x] - implement sorting/moving items
 
     Usage:
-    
-        todo add  | a any string # add a todo
 
-        todo get  | g            # list all items  
+        todo file | f   <name>        # specify todo list to use   
 
-        todo list | l            # list all items
+        todo add  | a   <name>        # add a todo
 
-        todo mark | m   <num>+   # toggle done
+        todo get  | g                 # list all items  
 
-        todo del  | d   <num>    # remove todo
+        todo list | l                 # list all items
 
-        todo swap | s <num> <num>#swap two items
+        todo mark | m   <num> [num]* num1..num2  # toggle done
 
-        todo file | f   <name>   # specify todo list name 
+        todo del  | d   <num>         # remove todo
 
-        todo help                # print help
+        todo swap | s   <num> <num>   # swap two items
+
+        todo help                     # print help
 
     

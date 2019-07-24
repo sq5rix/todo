@@ -1,0 +1,13 @@
+                if c.is_digit(10) {
+                    if !first_filled {
+                        first.push(c);
+                        print!("{}", c);
+                    }
+                } else {
+                    first_filled = true;
+                }
+                if first_filled {
+                    if c.is_digit(10) {
+                        second.push(c);
+                    }
+                }

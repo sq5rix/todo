@@ -9,6 +9,8 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
+use todo::get_range;
+
 const APP_INFO: AppInfo = AppInfo {
     name: "todo",
     author: "Tom Wawer",
@@ -179,7 +181,20 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
             }
             let nums = &arguments[2..];
             for idx in nums {
-                data.mark(idx.parse().expect("task number expected"));
+                let i = idx.parse();
+                match i {
+                    Ok(_) => {
+                        data.mark(i.unwrap());
+                    }
+                    Err(_) => {
+                        if let Some(range) = get_range(idx) {
+                            for index in range {
+                                data.mark(index);
+                            }
+                        } else {
+                        }
+                    }
+                }
             }
             conf.print();
             data.print();
@@ -223,7 +238,7 @@ fn print_help() {
         todo add  | a   <name>        # add a todo
         todo get  | g                 # list all items  
         todo list | l                 # list all items
-        todo mark | m   <num> [num]*  # toggle done
+        todo mark | m   <num> [num]* num1..num2  # toggle done
         todo del  | d   <num>         # remove todo
         todo swap | s   <num> <num>   # swap two items
         todo help                     # print help
