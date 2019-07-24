@@ -35,7 +35,8 @@ pub fn get_item_set(s: &str) -> ReturnItem {
     if let Ok(r1) = first.parse() {
         if let Ok(r2) = second.parse() {
             if r1 < r2 {
-                return ReturnItem::IntRange(r1..r2);
+                // r2 + 1 to get consistent with human
+                return ReturnItem::IntRange(r1..r2 + 1);
             } else {
                 return ReturnItem::None;
             }
@@ -57,10 +58,10 @@ mod tests {
         for test in valid_data {
             assert_eq!(
                 get_item_set(&test),
-                ReturnItem::IntRange(5..10),
+                ReturnItem::IntRange(5..11),
                 "we are testing {} as {:?}",
                 test,
-                ReturnItem::IntRange(5..10)
+                ReturnItem::IntRange(5..11)
             );
         }
     }
