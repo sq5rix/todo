@@ -58,6 +58,12 @@ impl TodoItem {
             completed: ' ',
         };
     }
+    fn clone(self: &TodoItem) -> TodoItem {
+        TodoItem {
+            item: self.item.clone(),
+            completed: self.completed,
+        }
+    }
 }
 
 // Vec of TodoItems
@@ -175,10 +181,7 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
     let command = arguments[1].as_str();
 
     match command {
-        "g" | "get" | "l" | "list" => {
-            conf.print();
-            data.print();
-        }
+        "g" | "get" | "l" | "list" => {}
         "a" | "add" => {
             if arguments.len() < 3 {
                 print_help();
@@ -239,13 +242,19 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
                 }
             }
         }
-        "s" | "swap" => {
+        "p" | "pri" => {
             if arguments.len() != 4 {
                 print_help();
             }
-            let ind1: usize = arguments[2].parse().expect("task 1 number expected");
-            let ind2: usize = arguments[3].parse().expect("task 2 number expected");
-            data.list.swap(ind1, ind2);
+            let pos: usize = arguments[2].parse().expect("task 1 number expected");
+            let goto: usize = arguments[3].parse().expect("task 2 number expected");
+            if pos > goto {
+                data.list.insert(goto, data.list[pos].clone());
+                data.list.remove(pos + 1);
+            } else if pos < goto {
+                data.list.insert(goto + 1, data.list[pos].clone());
+                data.list.remove(pos);
+            }
         }
         "u" | "undo" => {
             if arguments.len() != 2 {
@@ -262,8 +271,6 @@ fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<Str
             conf.save_config();
             data.list = Vec::new();
             data.load(conf);
-            conf.print();
-            data.print();
         }
         _ => {
             print_help();
@@ -283,7 +290,7 @@ fn print_help() {
         todo list | l                 # list all items
         todo mark | m   [num]* [num1..num2]   # toggle done
         todo del  | d   [num] | [num1..num2]  # remove todo
-        todo swap | s   <num> <num>   # swap two items
+        todo pri  | p   <num1> <num2> # move from num1 to num2
         todo help                     # print help
     "
     );
