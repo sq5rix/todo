@@ -4,6 +4,8 @@ extern crate serde_derive;
 
 use app_dirs::*;
 use serde_derive::{Deserialize, Serialize};
+use std::error;
+use std::fmt;
 use std::fs;
 use std::ops::Range;
 use std::path::PathBuf;
@@ -146,15 +148,47 @@ impl TodoConfig {
     }
 }
 
-// main parsing command, takes arguments, skips 0 index
-pub fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec<String>) {
-    let command = arguments[0].as_str();
+/// Error type for our parsing function
+type Result<T> = std::result::Result<T, TodoError>;
+#[derive(Debug, Clone)]
+pub enum TodoError {
+    Add,
+    Mark,
+    Delete,
+    List,
+    File,
+    Prioriy,
+    Undo,
+    InvalidCommand,
+}
+impl fmt::Display for TodoError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "todo parse error")
+    }
+}
+// This is important for other errors to wrap this one.
+impl error::Error for TodoError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        // Generic error, underlying cause isn't tracked.
+        None
+    }
+}
 
-    match command {
-        "g" | "get" | "l" | "list" => {}
+// main parsing command, takes arguments, skips 0 index
+pub fn parse_command(
+    conf: &mut TodoConfig,
+    data: &mut TodoList,
+    arguments: &Vec<String>,
+) -> Result<()> {
+
+    let command = arguments[0].to_lowercase();
+    let lowercase_command = command.as_str();
+
+    match lowercase_command {
+        "g" | "get" | "l" | "list" => Ok(()),
         "a" | "add" => {
             if arguments.len() < 2 {
-                print_help();
+                return Err(TodoError::Add);
             }
             let mut todo_item = String::new();
             let mut a = 1;
@@ -165,17 +199,19 @@ pub fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec
             }
             data.add(todo_item);
             data.make_backup(&conf);
+            Ok(())
         }
         "d" | "del" => {
             if arguments.len() != 2 {
-                println!("Only one pos argument after del");
-                print_help();
+                // println!("Only one pos argument after del");
+                return Err(TodoError::Delete);
             }
             data.make_backup(&conf);
             let item = get_item_set(&arguments[1]);
             match item {
                 ReturnItem::IntNum(i) => {
                     data.delete(i);
+                    Ok(())
                 }
                 ReturnItem::IntRange(ir) => {
                     // must be reversed to remove last first
@@ -184,15 +220,17 @@ pub fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec
                             data.delete(i);
                         }
                     }
+                    Ok(())
                 }
                 ReturnItem::None => {
-                    println!("Nothing deleted check your range");
+                    // println!("Nothing deleted check your range");
+                    Err(TodoError::Delete)
                 }
             }
         }
         "m" | "mark" => {
             if arguments.len() < 2 {
-                print_help();
+                return Err(TodoError::Mark);
             }
             let nums = &arguments[1..];
             for idx in nums {
@@ -211,10 +249,11 @@ pub fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec
                     ReturnItem::None => (),
                 }
             }
+            Ok(())
         }
         "p" | "pri" => {
             if arguments.len() != 3 {
-                print_help();
+                return Err(TodoError::Prioriy);
             }
             let pos: usize = arguments[1].parse().expect("task 1 number expected");
             let goto: usize = arguments[2].parse().expect("task 2 number expected");
@@ -225,25 +264,28 @@ pub fn parse_command(conf: &mut TodoConfig, data: &mut TodoList, arguments: &Vec
                 data.list.insert(goto + 1, data.list[pos].clone());
                 data.list.remove(pos);
             }
+            Ok(())
         }
         "u" | "undo" => {
             if arguments.len() != 1 {
-                print_help();
+                return Err(TodoError::Undo);
             }
             data.read_from_backup(conf);
+            Ok(())
         }
         "f" | "file" => {
             if arguments.len() != 2 {
-                print_help();
+                return Err(TodoError::File);
             }
             data.save(conf);
             conf.data_file_name = arguments[1].to_string();
             conf.save_config();
             data.list = Vec::new();
             data.load(conf);
+            Ok(())
         }
         _ => {
-            print_help();
+            return Err(TodoError::InvalidCommand);
         }
     }
 }
@@ -339,23 +381,4 @@ mod tests {
             );
         }
     }
-}
-
-// prints help
-pub fn print_help() {
-    println!(
-        "
-    Usage:
-        todo file | f   <name>        # specify todo list to use
-        todo undo | u                 # undo last operation
-        todo add  | a   <name>        # add a todo
-        todo get  | g                 # list all items  
-        todo list | l                 # list all items
-        todo mark | m   [num]* [num1..num2]   # toggle done
-        todo del  | d   [num] | [num1..num2]  # remove todo
-        todo pri  | p   <num1> <num2> # move from num1 to num2
-        todo help                     # print help
-    "
-    );
-    ::std::process::exit(0);
 }
