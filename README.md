@@ -3,15 +3,15 @@ Written in Rust.
 
     Usage:
 
-        todo file | f   <name>        # specify todo list to use   
+        todo file | f   <name>        # load todo list to use   
+
+        todo list | l                 # list all todo lists
 
         todo read | r   <name>        # read from other todo list into current
 
         todo add  | a   <name>        # add a todo
 
         todo get  | g                 # list all items  
-
-        todo list | l                 # list all items
 
         todo mark | m   <num> [num]* num1..num2  # toggle done
 

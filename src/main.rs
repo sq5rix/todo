@@ -23,8 +23,6 @@ fn main() {
     // main parsing command takes config struct and todo list struct
     parse_command(&mut config_data, &mut todo_list, &arguments)
         .unwrap_or_else(|e| todo::todo_error_display(e));
-    config_data.print();
-    todo_list.print();
 
     if !todo_list.is_empty() {
         todo_list.save(&config_data);
@@ -38,12 +36,12 @@ fn print_help() {
     println!(
         "
     Usage:
-        todo file | f   <name>        # specify todo list to use
+        todo list | l                 # list all todo lists in config directory
+        todo file | f   <name>        # load todo list to use
         todo read | r   <name>        # read from other todo list into current
         todo undo | u                 # undo last operation
         todo add  | a   <name>        # add a todo
         todo get  | g                 # list all items  
-        todo list | l                 # list all items
         todo mark | m   [num]* [num1..num2]   # toggle done
         todo del  | d   [num] | [num1..num2]  # remove todo
         todo pri  | p   <num1> <num2> # move from num1 to num2

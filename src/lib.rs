@@ -12,6 +12,21 @@ const APP_INFO: AppInfo = AppInfo {
     name: "todo",
     author: "Tom Wawer",
 };
+/// Error type for our parsing function
+type TodoResult = std::result::Result<(), TodoError>;
+#[derive(Debug, Clone)]
+pub enum TodoError {
+    Add,
+    Mark,
+    Delete,
+    List,
+    File,
+    Prioriy,
+    ReadFile,
+    Undo,
+    InvalidCommand,
+}
+
 const CONFIG_FILE: &'static str = "todo.config";
 const DATA_FILE: &'static str = "todo.data";
 
@@ -88,7 +103,6 @@ impl TodoList {
         // Convert the JSON string back to a TodoList.
         let file_name = conf.data_dir_name.join(other_file);
         if let Ok(todo_data) = fs::read_to_string(file_name) {
-            // let mut new_data = TodoList::new();
             if let Ok(mut new_data) = serde_json::from_str::<TodoList>(&todo_data) {
                 self.list.append(&mut new_data.list);
             } else {
@@ -126,6 +140,7 @@ impl TodoList {
 pub struct TodoConfig {
     data_dir_name: PathBuf,
     data_file_name: String,
+    data_list: Vec<String>,
 }
 
 impl TodoConfig {
@@ -134,6 +149,7 @@ impl TodoConfig {
             data_dir_name: get_app_root(AppDataType::UserConfig, &APP_INFO)
                 .expect("App dir not found"),
             data_file_name: DATA_FILE.to_string(),
+            data_list: Vec::new(),
         }
     }
     // config file in the user app directory
@@ -141,7 +157,13 @@ impl TodoConfig {
         fs::create_dir_all(&self.data_dir_name).expect("Problem creating user data directory");
         let config_file_name = self.data_dir_name.join(CONFIG_FILE);
         if let Ok(contents) = fs::read_to_string(config_file_name) {
-            *self = serde_json::from_str(&contents).unwrap();
+            if let Ok(new_data) = serde_json::from_str::<TodoConfig>(&contents) {
+                *self = new_data;
+            } else {
+                println!("saved config - error in load config");
+                self.save_config();
+            }
+        // *self = serde_json::from_str(&contents).unwrap();
         } else {
             self.save_config();
         };
@@ -151,34 +173,37 @@ impl TodoConfig {
         let file_name = self.data_dir_name.join(CONFIG_FILE);
         fs::write(file_name, serialized).expect("Cannot write to config file, permissions?");
     }
-    pub fn remove_data_file(&self) {
-        let _ = fs::remove_file(&self.data_dir_name.join(&self.data_file_name));
+    pub fn remove_data_file(&mut self) {
+        let file_name = &self.data_file_name.clone();
+        self.remove_todo_file(file_name);
+        let _ = fs::remove_file(&self.data_dir_name.join(file_name));
+        self.save_config();
+    }
+    pub fn add_todo_file(&mut self, v: String) {
+        &self.data_list.retain(|i| i != &v);
+        &self.data_list.push(v);
+    }
+    pub fn remove_todo_file(&mut self, v: &String) {
+        &self.data_list.retain(|i| i != v);
     }
     pub fn print(&self) {
         println!("{} Todo: ", self.data_file_name);
     }
+    pub fn print_list(&self) {
+        println!("Config dir: {:?}", &self.data_dir_name);
+        println!("Todo lists:");
+        for i in &self.data_list {
+            println!("{}", i);
+        }
+    }
 }
 
-/// Error type for our parsing function
-type TodoResult = std::result::Result<(), TodoError>;
-#[derive(Debug, Clone)]
-pub enum TodoError {
-    Add,
-    Mark,
-    Delete,
-    List,
-    File,
-    Prioriy,
-    ReadFile,
-    Undo,
-    InvalidCommand,
-}
 
 pub fn todo_error_display(e: TodoError) {
     match e {
-        TodoError::Add => eprintln!("Should be todo add any text, you can use \" < > | : \" "),
-        TodoError::Mark => eprintln!("Should be todo mark 3 4..6 etc..."),
-        TodoError::Delete => eprintln!("Should be todo del 3 or todo del 3..5"),
+        TodoError::Add => eprintln!("Use todo add any text, you can use \" < > | : \" "),
+        TodoError::Mark => eprintln!("Use todo mark 3 4..6 etc..."),
+        TodoError::Delete => eprintln!("Use todo del 3 or todo del 3..5"),
         TodoError::List => eprintln!("Use todo list or todo l or todo g or todo get"),
         TodoError::ReadFile => eprintln!("Use todo file name other than current"),
         TodoError::File => eprintln!("Use todo file name - a file with todo items"),
@@ -198,7 +223,13 @@ pub fn parse_command(
     let lowercase_command = command.as_str();
 
     match lowercase_command {
-        "g" | "get" | "l" | "list" => Ok(()),
+        "g" | "get" => {
+            conf.print();
+            data.print();
+        }
+        "l" | "list" => {
+            conf.print_list();
+        }
         "a" | "add" => {
             if arguments.len() < 2 {
                 return Err(TodoError::Add);
@@ -212,7 +243,8 @@ pub fn parse_command(
             }
             data.add(todo_item);
             data.make_backup(&conf);
-            Ok(())
+            conf.print();
+            data.print();
         }
         "d" | "del" => {
             if arguments.len() != 2 {
@@ -224,7 +256,6 @@ pub fn parse_command(
             match item {
                 ReturnItem::IntNum(i) => {
                     data.delete(i);
-                    Ok(())
                 }
                 ReturnItem::IntRange(ir) => {
                     // must be reversed to remove last first
@@ -233,13 +264,14 @@ pub fn parse_command(
                             data.delete(i);
                         }
                     }
-                    Ok(())
                 }
                 ReturnItem::None => {
                     // println!("Nothing deleted check your range");
-                    Err(TodoError::Delete)
+                    return Err(TodoError::Delete);
                 }
             }
+            conf.print();
+            data.print();
         }
         "m" | "mark" => {
             if arguments.len() < 2 {
@@ -264,7 +296,8 @@ pub fn parse_command(
                     }
                 }
             }
-            Ok(())
+            conf.print();
+            data.print();
         }
         "p" | "pri" => {
             if arguments.len() != 3 {
@@ -279,14 +312,16 @@ pub fn parse_command(
                 data.list.insert(goto + 1, data.list[pos].clone());
                 data.list.remove(pos);
             }
-            Ok(())
+            conf.print();
+            data.print();
         }
         "u" | "undo" => {
             if arguments.len() != 1 {
                 return Err(TodoError::Undo);
             }
             data.read_from_backup(conf);
-            Ok(())
+            conf.print();
+            data.print();
         }
         "f" | "file" => {
             if arguments.len() != 2 {
@@ -294,23 +329,26 @@ pub fn parse_command(
             }
             data.save(conf);
             conf.data_file_name = arguments[1].to_string();
+            conf.add_todo_file(conf.data_file_name.clone());
             conf.save_config();
             data.list = Vec::new();
             data.load(conf);
-            Ok(())
+            conf.print();
+            data.print();
         }
         "r" | "read" => {
             if arguments.len() != 2 {
                 return Err(TodoError::ReadFile);
             }
-            data.load_other_file(conf, arguments[1].to_string())
-                .unwrap_or_else(|e| eprintln!("incorrect parsing of todolist, {:?}", e));
-            Ok(())
+            data.load_other_file(conf, arguments[1].to_string())?;
+            conf.print();
+            data.print();
         }
         _ => {
             return Err(TodoError::InvalidCommand);
         }
     }
+    Ok(())
 }
 
 /// help parse lib for todo app
