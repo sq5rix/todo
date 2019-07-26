@@ -4,8 +4,6 @@ extern crate serde_derive;
 
 use app_dirs::*;
 use serde_derive::{Deserialize, Serialize};
-use std::error;
-use std::fmt;
 use std::fs;
 use std::ops::Range;
 use std::path::PathBuf;
@@ -86,6 +84,19 @@ impl TodoList {
         let file_name = conf.data_dir_name.join(&conf.data_file_name);
         fs::write(file_name, todo_data).expect("Cannot write to file, permissions?");
     }
+    pub fn load_other_file(&mut self, conf: &TodoConfig, other_file: String) -> TodoResult {
+        // Convert the JSON string back to a TodoList.
+        let file_name = conf.data_dir_name.join(other_file);
+        if let Ok(todo_data) = fs::read_to_string(file_name) {
+            // let mut new_data = TodoList::new();
+            if let Ok(mut new_data) = serde_json::from_str::<TodoList>(&todo_data) {
+                self.list.append(&mut new_data.list);
+            } else {
+                return Err(TodoError::ReadFile);
+            }
+        }
+        Ok(())
+    }
     pub fn load(&mut self, conf: &TodoConfig) {
         // Convert the JSON string back to a TodoList.
         let file_name = conf.data_dir_name.join(&conf.data_file_name);
@@ -149,7 +160,7 @@ impl TodoConfig {
 }
 
 /// Error type for our parsing function
-type Result<T> = std::result::Result<T, TodoError>;
+type TodoResult = std::result::Result<(), TodoError>;
 #[derive(Debug, Clone)]
 pub enum TodoError {
     Add,
@@ -158,19 +169,22 @@ pub enum TodoError {
     List,
     File,
     Prioriy,
+    ReadFile,
     Undo,
     InvalidCommand,
 }
-impl fmt::Display for TodoError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "todo parse error")
-    }
-}
-// This is important for other errors to wrap this one.
-impl error::Error for TodoError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        // Generic error, underlying cause isn't tracked.
-        None
+
+pub fn todo_error_display(e: TodoError) {
+    match e {
+        TodoError::Add => eprintln!("Should be todo add any text, you can use \" < > | : \" "),
+        TodoError::Mark => eprintln!("Should be todo mark 3 4..6 etc..."),
+        TodoError::Delete => eprintln!("Should be todo del 3 or todo del 3..5"),
+        TodoError::List => eprintln!("Use todo list or todo l or todo g or todo get"),
+        TodoError::ReadFile => eprintln!("Use todo file name other than current"),
+        TodoError::File => eprintln!("Use todo file name - a file with todo items"),
+        TodoError::Prioriy => eprintln!("Use todo pri 3 8 from - to"),
+        TodoError::Undo => eprintln!("Use todo undo to return to previous list"),
+        TodoError::InvalidCommand => eprintln!("Use correct command"),
     }
 }
 
@@ -179,7 +193,7 @@ pub fn parse_command(
     conf: &mut TodoConfig,
     data: &mut TodoList,
     arguments: &Vec<String>,
-) -> Result<()> {
+) -> TodoResult {
     let command = arguments[0].to_lowercase();
     let lowercase_command = command.as_str();
 
@@ -245,7 +259,9 @@ pub fn parse_command(
                             }
                         }
                     }
-                    ReturnItem::None => (),
+                    ReturnItem::None => {
+                        return Err(TodoError::Mark);
+                    }
                 }
             }
             Ok(())
@@ -281,6 +297,14 @@ pub fn parse_command(
             conf.save_config();
             data.list = Vec::new();
             data.load(conf);
+            Ok(())
+        }
+        "r" | "read" => {
+            if arguments.len() != 2 {
+                return Err(TodoError::ReadFile);
+            }
+            data.load_other_file(conf, arguments[1].to_string())
+                .unwrap_or_else(|e| eprintln!("incorrect parsing of todolist, {:?}", e));
             Ok(())
         }
         _ => {

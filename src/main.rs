@@ -21,16 +21,8 @@ fn main() {
 
     arguments.remove(0);
     // main parsing command takes config struct and todo list struct
-    parse_command(&mut config_data, &mut todo_list, &arguments).unwrap_or_else(|e| match e {
-        todo::TodoError::Add => println!("Should be todo add any text, you can use \" < > | : \" "),
-        todo::TodoError::Mark => println!("Should be todo mark 3  4..6 etc..."),
-        todo::TodoError::Delete => println!("Should be todo del 3 or todo del 3..5"),
-        todo::TodoError::List => println!("Use todo list or todo l or todo g or todo get"),
-        todo::TodoError::File => println!("Use todo file name - a file with todo items"),
-        todo::TodoError::Prioriy => println!("Use todo pri 3 8 from - to"),
-        todo::TodoError::Undo => println!("Use todo undo to returne to previous list"),
-        todo::TodoError::InvalidCommand => println!("Use correct command"),
-    });
+    parse_command(&mut config_data, &mut todo_list, &arguments)
+        .unwrap_or_else(|e| todo::todo_error_display(e));
     config_data.print();
     todo_list.print();
 
@@ -47,6 +39,7 @@ fn print_help() {
         "
     Usage:
         todo file | f   <name>        # specify todo list to use
+        todo read | r   <name>        # read from other todo list into current
         todo undo | u                 # undo last operation
         todo add  | a   <name>        # add a todo
         todo get  | g                 # list all items  

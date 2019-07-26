@@ -5,6 +5,8 @@ Written in Rust.
 
         todo file | f   <name>        # specify todo list to use   
 
+        todo read | r   <name>        # read from other todo list into current
+
         todo add  | a   <name>        # add a todo
 
         todo get  | g                 # list all items  
