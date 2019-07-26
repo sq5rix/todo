@@ -180,7 +180,6 @@ pub fn parse_command(
     data: &mut TodoList,
     arguments: &Vec<String>,
 ) -> Result<()> {
-
     let command = arguments[0].to_lowercase();
     let lowercase_command = command.as_str();
 
@@ -306,20 +305,28 @@ pub fn get_item_set(s: &str) -> ReturnItem {
     let mut first = String::new();
     let mut second = String::new();
     let mut first_filled = false;
-
-    for c in s.chars() {
-        // let ch = s.chars().next();
-        if c.is_digit(10) {
-            if !first_filled {
-                first.push(c);
+    let mut iter = s.chars();
+    while let Some(c) = iter.next() {
+        // for c in s.chars() { - cant use nex in for loop!!!
+        // possibles are digit or . or - all other are errors
+        if c.is_digit(10) && !first_filled {
+            first.push(c);
+        } else if c.is_digit(10) && first_filled {
+            second.push(c);
+        } else if !c.is_digit(10) && !first_filled {
+            if c == '-' {
+                first_filled = true;
+            } else if c == '.' {
+                if iter.next() == Some('.') {
+                    first_filled = true;
+                } else {
+                    return ReturnItem::None;
+                }
+            } else {
+                return ReturnItem::None;
             }
         } else {
-            first_filled = true;
-        }
-        if first_filled {
-            if c.is_digit(10) {
-                second.push(c);
-            }
+            return ReturnItem::None;
         }
     }
     // println!("Got: r1: {} r2: {}", first, second);
@@ -345,7 +352,7 @@ mod tests {
     use super::ReturnItem;
     #[test]
     fn valid_range_tests() {
-        let valid_data = vec!["5..10", "5x10", "5-10"];
+        let valid_data = vec!["5..10", "5-10"];
         for test in valid_data {
             assert_eq!(
                 get_item_set(&test),
@@ -358,7 +365,7 @@ mod tests {
     }
     #[test]
     fn valid_single_tests() {
-        let valid_data = vec!["5", "5xxx", "5..."];
+        let valid_data = vec!["5"];
         for test in valid_data {
             assert_eq!(
                 get_item_set(&test),
@@ -371,7 +378,18 @@ mod tests {
     }
     #[test]
     fn invalid_tests() {
-        let invalid_data = vec!["61-6a", "aaa5", "61-6", "xxx", "61-6"];
+        let invalid_data = vec![
+            "5x10",
+            "[5-10ccc]",
+            "[5..10ccc]",
+            "5x",
+            "x5",
+            "61-6a",
+            "aaa5",
+            "61-6",
+            "xxx",
+            "61-6",
+        ];
         for test in invalid_data {
             assert_eq!(
                 get_item_set(&test),
