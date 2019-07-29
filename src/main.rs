@@ -16,37 +16,20 @@ fn main() {
     if arguments.len() == 1 {
         config_data.print();
         todo_list.print();
-        print_help();
+        todo::print_help();
     }
 
     arguments.remove(0);
     // main parsing command takes config struct and todo list struct
-    parse_command(&mut config_data, &mut todo_list, &arguments)
-        .unwrap_or_else(|e| todo::todo_error_display(e));
+    let c = parse_command(&mut config_data, &mut todo_list, &arguments);
+    match c {
+        Ok(c) => todo::command_match(c, &config_data, &todo_list),
+        Err(c) => todo::todo_error_display(c),
+    }
 
     if !todo_list.is_empty() {
         todo_list.save(&config_data);
     } else {
         config_data.remove_data_file();
     }
-}
-
-// prints help
-fn print_help() {
-    println!(
-        "
-    Usage:
-        todo list | l                 # list all todo lists in config directory
-        todo file | f   <name>        # load todo list to use
-        todo read | r   <name>        # read from other todo list into current
-        todo undo | u                 # undo last operation
-        todo add  | a   <name>        # add a todo
-        todo get  | g                 # list all items  
-        todo mark | m   [num]* [num1..num2]   # toggle done
-        todo del  | d   [num] | [num1..num2]  # remove todo
-        todo pri  | p   <num1> <num2> # move from num1 to num2
-        todo help                     # print help
-    "
-    );
-    ::std::process::exit(0);
 }

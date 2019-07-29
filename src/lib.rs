@@ -12,16 +12,18 @@ const APP_INFO: AppInfo = AppInfo {
     name: "todo",
     author: "Tom Wawer",
 };
-/// Error type for our parsing function
-type TodoResult = std::result::Result<(), TodoError>;
+/// Command enum Error type for our parsing function
+/// For now, it returns only command name
+type TodoResult = std::result::Result<TodoParseReturn, TodoParseReturn>;
 #[derive(Debug, Clone)]
-pub enum TodoError {
+pub enum TodoParseReturn {
     Add,
     Mark,
     Delete,
     List,
+    Get,
     File,
-    Prioriy,
+    Priority,
     ReadFile,
     Undo,
     InvalidCommand,
@@ -106,10 +108,10 @@ impl TodoList {
             if let Ok(mut new_data) = serde_json::from_str::<TodoList>(&todo_data) {
                 self.list.append(&mut new_data.list);
             } else {
-                return Err(TodoError::ReadFile);
+                return Err(TodoParseReturn::ReadFile);
             }
         }
-        Ok(())
+        Ok(TodoParseReturn::ReadFile)
     }
     pub fn load(&mut self, conf: &TodoConfig) {
         // Convert the JSON string back to a TodoList.
@@ -198,21 +200,6 @@ impl TodoConfig {
     }
 }
 
-
-pub fn todo_error_display(e: TodoError) {
-    match e {
-        TodoError::Add => eprintln!("Use todo add any text, you can use \" < > | : \" "),
-        TodoError::Mark => eprintln!("Use todo mark 3 4..6 etc..."),
-        TodoError::Delete => eprintln!("Use todo del 3 or todo del 3..5"),
-        TodoError::List => eprintln!("Use todo list or todo l or todo g or todo get"),
-        TodoError::ReadFile => eprintln!("Use todo file name other than current"),
-        TodoError::File => eprintln!("Use todo file name - a file with todo items"),
-        TodoError::Prioriy => eprintln!("Use todo pri 3 8 from - to"),
-        TodoError::Undo => eprintln!("Use todo undo to return to previous list"),
-        TodoError::InvalidCommand => eprintln!("Use correct command"),
-    }
-}
-
 // main parsing command, takes arguments, skips 0 index
 pub fn parse_command(
     conf: &mut TodoConfig,
@@ -223,16 +210,11 @@ pub fn parse_command(
     let lowercase_command = command.as_str();
 
     match lowercase_command {
-        "g" | "get" => {
-            conf.print();
-            data.print();
-        }
-        "l" | "list" => {
-            conf.print_list();
-        }
+        "g" | "get" => Ok(TodoParseReturn::Get),
+        "l" | "list" => Ok(TodoParseReturn::List),
         "a" | "add" => {
             if arguments.len() < 2 {
-                return Err(TodoError::Add);
+                return Err(TodoParseReturn::Add);
             }
             let mut todo_item = String::new();
             let mut a = 1;
@@ -243,13 +225,11 @@ pub fn parse_command(
             }
             data.add(todo_item);
             data.make_backup(&conf);
-            conf.print();
-            data.print();
+            Ok(TodoParseReturn::Add)
         }
         "d" | "del" => {
             if arguments.len() != 2 {
-                // println!("Only one pos argument after del");
-                return Err(TodoError::Delete);
+                return Err(TodoParseReturn::Delete);
             }
             data.make_backup(&conf);
             let item = get_item_set(&arguments[1]);
@@ -266,16 +246,14 @@ pub fn parse_command(
                     }
                 }
                 ReturnItem::None => {
-                    // println!("Nothing deleted check your range");
-                    return Err(TodoError::Delete);
+                    return Err(TodoParseReturn::Delete);
                 }
             }
-            conf.print();
-            data.print();
+            Ok(TodoParseReturn::Delete)
         }
         "m" | "mark" => {
             if arguments.len() < 2 {
-                return Err(TodoError::Mark);
+                return Err(TodoParseReturn::Mark);
             }
             let nums = &arguments[1..];
             for idx in nums {
@@ -292,16 +270,15 @@ pub fn parse_command(
                         }
                     }
                     ReturnItem::None => {
-                        return Err(TodoError::Mark);
+                        return Err(TodoParseReturn::Mark);
                     }
                 }
             }
-            conf.print();
-            data.print();
+            Ok(TodoParseReturn::Mark)
         }
         "p" | "pri" => {
             if arguments.len() != 3 {
-                return Err(TodoError::Prioriy);
+                return Err(TodoParseReturn::Priority);
             }
             let pos: usize = arguments[1].parse().expect("task 1 number expected");
             let goto: usize = arguments[2].parse().expect("task 2 number expected");
@@ -312,20 +289,18 @@ pub fn parse_command(
                 data.list.insert(goto + 1, data.list[pos].clone());
                 data.list.remove(pos);
             }
-            conf.print();
-            data.print();
+            Ok(TodoParseReturn::Priority)
         }
         "u" | "undo" => {
             if arguments.len() != 1 {
-                return Err(TodoError::Undo);
+                return Err(TodoParseReturn::Undo);
             }
             data.read_from_backup(conf);
-            conf.print();
-            data.print();
+            Ok(TodoParseReturn::Undo)
         }
         "f" | "file" => {
             if arguments.len() != 2 {
-                return Err(TodoError::File);
+                return Err(TodoParseReturn::File);
             }
             data.save(conf);
             conf.data_file_name = arguments[1].to_string();
@@ -333,22 +308,18 @@ pub fn parse_command(
             conf.save_config();
             data.list = Vec::new();
             data.load(conf);
-            conf.print();
-            data.print();
+            Ok(TodoParseReturn::File)
         }
         "r" | "read" => {
             if arguments.len() != 2 {
-                return Err(TodoError::ReadFile);
+                return Err(TodoParseReturn::ReadFile);
             }
-            data.load_other_file(conf, arguments[1].to_string())?;
-            conf.print();
-            data.print();
+            return data.load_other_file(conf, arguments[1].to_string());
         }
         _ => {
-            return Err(TodoError::InvalidCommand);
+            return Err(TodoParseReturn::InvalidCommand);
         }
     }
-    Ok(())
 }
 
 /// help parse lib for todo app
@@ -406,6 +377,54 @@ pub fn get_item_set(s: &str) -> ReturnItem {
     } else {
         return ReturnItem::None;
     };
+}
+
+pub fn todo_error_display(e: TodoParseReturn) {
+    match e {
+        TodoParseReturn::Add => eprintln!("Use todo add any text, you can use \" < > | : \" "),
+        TodoParseReturn::Mark => eprintln!("Use todo mark 3 4..6 etc..."),
+        TodoParseReturn::Delete => eprintln!("Use todo del 3 or todo del 3..5"),
+        TodoParseReturn::List => eprintln!("Use todo list or todo l "),
+        TodoParseReturn::Get => eprintln!("Use todo get or todo g "),
+        TodoParseReturn::ReadFile => eprintln!("Use todo file name other than current"),
+        TodoParseReturn::File => eprintln!("Use todo file name - a file with todo items"),
+        TodoParseReturn::Priority => eprintln!("Use todo pri 3 8 from - to"),
+        TodoParseReturn::Undo => eprintln!("Use todo undo to return to previous list"),
+        TodoParseReturn::InvalidCommand => eprintln!("Use correct command"),
+    }
+}
+
+pub fn command_match(c: TodoParseReturn, conf: &TodoConfig, data: &TodoList) {
+    match c {
+        TodoParseReturn::InvalidCommand => {
+            print_help();
+        }
+        TodoParseReturn::List => conf.print_list(),
+        _ => {
+            conf.print();
+            data.print();
+        }
+    }
+}
+
+/// prints todo parser help
+pub fn print_help() {
+    println!(
+        "
+    Usage:
+        todo list | l                 # list all todo lists in config directory
+        todo file | f   <name>        # load todo list to use
+        todo read | r   <name>        # read from other todo list into current
+        todo undo | u                 # undo last operation
+        todo add  | a   <name>        # add a todo
+        todo get  | g                 # list all items  
+        todo mark | m   [num]* [num1..num2]   # toggle done
+        todo del  | d   [num] | [num1..num2]  # remove todo
+        todo pri  | p   <num1> <num2> # move from num1 to num2
+        todo help                     # print help
+    "
+    );
+    ::std::process::exit(0);
 }
 
 #[cfg(test)]
