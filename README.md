@@ -1,6 +1,8 @@
 Simple command-line todo list, saves todo list in a local file. 
 Written in Rust.
 
+Look at screenshots in wiki to see todo in action
+
     Usage:
 
         todo file | f   <name>        # load todo list to use   

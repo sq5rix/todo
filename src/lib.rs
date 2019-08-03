@@ -26,6 +26,7 @@ pub enum TodoParseReturn {
     Priority,
     ReadFile,
     Undo,
+    Help,
     InvalidCommand,
 }
 
@@ -316,6 +317,7 @@ pub fn parse_command(
             }
             return data.load_other_file(conf, arguments[1].to_string());
         }
+        "h" | "help" => return Err(TodoParseReturn::Help),
         _ => {
             return Err(TodoParseReturn::InvalidCommand);
         }
@@ -390,6 +392,7 @@ pub fn todo_error_display(e: TodoParseReturn) {
         TodoParseReturn::File => eprintln!("Use todo file name - a file with todo items"),
         TodoParseReturn::Priority => eprintln!("Use todo pri 3 8 from - to"),
         TodoParseReturn::Undo => eprintln!("Use todo undo to return to previous list"),
+        TodoParseReturn::Help => eprintln!("Help error"),
         TodoParseReturn::InvalidCommand => eprintln!("Use correct command"),
     }
 }
@@ -397,6 +400,9 @@ pub fn todo_error_display(e: TodoParseReturn) {
 pub fn command_match(c: TodoParseReturn, conf: &TodoConfig, data: &TodoList) {
     match c {
         TodoParseReturn::InvalidCommand => {
+            print_help();
+        }
+        TodoParseReturn::Help => {
             print_help();
         }
         TodoParseReturn::List => conf.print_list(),
