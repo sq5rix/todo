@@ -185,9 +185,11 @@ impl TodoConfig {
     pub fn add_todo_file(&mut self, v: String) {
         &self.data_list.retain(|i| i != &v);
         &self.data_list.push(v);
+        self.save_config();
     }
     pub fn remove_todo_file(&mut self, v: &String) {
         &self.data_list.retain(|i| i != v);
+        self.save_config();
     }
     pub fn print(&self) {
         println!("{} Todo: ", self.data_file_name);
@@ -385,7 +387,7 @@ pub fn todo_error_display(e: TodoParseReturn) {
     match e {
         TodoParseReturn::Add => eprintln!("Use todo add any text, you can use \" < > | : \" "),
         TodoParseReturn::Mark => eprintln!("Use todo mark 3 4..6 etc..."),
-        TodoParseReturn::Delete => eprintln!("Use todo del 3 or todo del 3..5"),
+        TodoParseReturn::Delete => eprintln!("Use todo del 3 or todo del 3..5 or todo del 3-5"),
         TodoParseReturn::List => eprintln!("Use todo list or todo l "),
         TodoParseReturn::Get => eprintln!("Use todo get or todo g "),
         TodoParseReturn::ReadFile => eprintln!("Use todo file name other than current"),
